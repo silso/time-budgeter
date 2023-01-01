@@ -110,17 +110,15 @@
 	@use "@material/card";
 	@use "@material/typography";
 
-	:global {
-		.name__text-field {
-			width: 100%;
-			input {
-				@include typography.typography('headline5');
-			}
+	:global(.name__text-field) {
+		width: 100%;
+		input {
+			@include typography.typography('headline5');
 		}
-
-		.activity-card .no-padding .smui-paper__content {
-			padding: 0 !important;
-		}
+	}
+	
+	:global(.activity-card .no-padding .smui-paper__content) {
+		padding: 0 !important;
 	}
 
 	:global(.activity-card) {
