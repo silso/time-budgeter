@@ -1,4 +1,4 @@
-import { writable } from "svelte/store";
+import { asyncWritable, type Stores } from "@square/svelte-store";
 
 export type AbstractActivity = {
     id: number;
@@ -22,42 +22,25 @@ export type FundamentalActivity = AbstractActivity & {
 
 export type Activity = GenericActivity | FundamentalActivity;
 
-export const activities = writable<Activity[]>(
-    [
-        {
-            id: 0,
-            fundamental: false,
-            name: 'specific activity',
-            value: 0,
-            description: '',
-            components: [
-                {
-                    weight: 0.5,
-                    activityId: 1,
-                },
-                {
-                    weight: 0.25,
-                    activityId: 2,
-                },
-            ]
-        },
-        {
-            id: 1,
-            fundamental: true,
-            name: 'general activity 1',
-            value: 2,
-            description: '',
-            components: undefined,
-        },
-        {
-            id: 2,
-            fundamental: true,
-            name: 'general activity 2',
-            value: 5,
-            description: '',
-            components: undefined,
-        },
-    ]
+export const activities = asyncWritable<Stores, Activity[]>(
+    [],
+    async () => {
+        const res = await fetch('/api/activities');
+        console.log(res)
+        return res.json();
+    },
+    async (newActivities, _parentValues, oldActivities) => {
+        console.log(newActivities, oldActivities);
+        // const newActivities = oldActivities?.filter(activity =>);
+        
+        // TODO: must only be new activities, all of these will be inserted into the database rn
+        const postBody = JSON.stringify({ newActivities, newActivityComponents, removedActivities, removedActivityComponents });
+        const response = await fetch('/api/activities', {
+            method: 'POST',
+            body: postBody,
+        });
+        return response.json();
+    }
 );
 
 activities.subscribe(val => {
