@@ -1,13 +1,6 @@
 import type {Activity} from '$lib/stores/store';
 import type { RequestHandler } from '@sveltejs/kit';
-
-type ActivitiesRow = Omit<Activity, 'components'>
-
-type ActivityComponentsRow = {
-	parent: number,
-	child: number,
-	weight: number
-}
+import type {ActivitiesRow, ActivityComponentsRow} from '$lib/activities/activities';
 
 export const GET = (async ({ locals }) => {
 	const { sql } = locals;
@@ -42,64 +35,53 @@ export const GET = (async ({ locals }) => {
 			}
 		}
 	})
-	
 	return new Response(JSON.stringify(activities)); // FIXME: prolly dont want to stringify
 }) satisfies RequestHandler;
 
 export const POST = (async ({ request, locals }) => {
-	const { newActivities, removedActivities }: { newActivities: Activity[], removedActivities: Activity[] } = await request.json();
+	const req = await request.json();
+	const {
+		updatedActivitiesRows,
+		updatedActivityComponentsRows,
+		removedActivitiesRows,
+		removedActivityComponentsRows
+	}: {
+		updatedActivitiesRows: ActivitiesRow[],
+		updatedActivityComponentsRows: ActivityComponentsRow[],
+		removedActivitiesRows: ActivitiesRow[],
+		removedActivityComponentsRows: ActivityComponentsRow[]
+	} = req;
 	const { sql } = locals;
 	
-	const newActivitiesRows = newActivities.map(activity => {
-		// eslint-disable-next-line @typescript-eslint/no-unused-vars
-		const { components, ...activityWithoutComponents } = activity;
-		return activityWithoutComponents;
-	})
+	const result = await sql.begin(sql => [
+		...(updatedActivitiesRows.length === 0) ? [] : [sql`
+			INSERT INTO "Activities" ${
+				sql(updatedActivitiesRows)
+			}
+			ON CONFLICT (id) DO UPDATE
+				SET name = EXCLUDED.name,
+					value = EXCLUDED.value,
+					description = EXCLUDED.description,
+					fundamental = EXCLUDED.fundamental
+		`],
+		...(updatedActivityComponentsRows.length === 0) ? [] : [sql`
+			INSERT INTO "Activity Components" ${
+				sql(updatedActivityComponentsRows)
+			}
+			ON CONFLICT (parent, child) DO UPDATE
+				SET weight = EXCLUDED.weight
+		`],
+		// NOTE: these might not work at all
+		...(removedActivitiesRows.length === 0) ? [] : [sql`
+			DELETE FROM "Activities"
+			WHERE id IN ${sql(removedActivitiesRows)}
+		`],
+		...(removedActivityComponentsRows.length === 0) ? [] : [sql`
+			DELETE FROM "Activities"
+			WHERE (parent, child) IN ${sql(removedActivityComponentsRows)}
+		`]
+	])
 	
-	const newActivityComponentsRows = newActivities.flatMap(activity => {
-		return activity.components?.map(component => ({
-			parent: activity.id,
-			child: component.activityId,
-			weight: component.weight
-		})) ?? []
-	})
-	
-	const result = await sql`
-		INSERT INTO "Activities" ${
-			sql(newActivitiesRows)
-		}
-		ON CONFLICT (id) DO UPDATE
-			SET name = EXCLUDED.name,
-				value = EXCLUDED.value,
-				description = EXCLUDED.description,
-				fundamental = EXCLUDED.fundamental
-	`
-	const result2 = await sql`
-		INSERT INTO "Activity Components" ${
-			sql(newActivityComponentsRows)
-		}
-		ON CONFLICT (parent, child) DO UPDATE
-			SET weight = EXCLUDED.weight
-	`;
-	
-	const removedActivitiesRows = removedActivities.map(activity => activity.id)
-	
-	const removedActivityComponentsRows = removedActivities.flatMap(activity => {
-		return activity.components?.map(component => ({
-			parent: activity.id,
-			child: component.activityId
-		})) ?? []
-	})
-	
-	const result3 = await sql`
-		DELETE FROM "Activities"
-		WHERE id IN ${sql(removedActivitiesRows)}
-	`
-	
-	const result4 = await sql`
-	DELETE FROM "Activities"
-	WHERE (parent, child) IN ${sql(removedActivityComponentsRows)}
-	`
 	
 	return new Response(JSON.stringify(result)); // FIXME: prolly dont want to stringify
 }) satisfies RequestHandler;

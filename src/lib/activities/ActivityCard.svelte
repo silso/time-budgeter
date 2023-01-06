@@ -5,7 +5,8 @@
 	import LayoutGrid, { Cell, InnerGrid } from '@smui/layout-grid';
 	import Slider from '@smui/slider';
 	import TextField from '@smui/textfield';
-	import { activities, type Activity } from "../stores/store";
+	import { activities, type Activity } from "$lib/stores/store";
+	import _ from 'lodash';
 
 	export let activity: Activity;
 	let sliderNum = 0;
@@ -14,26 +15,35 @@
 
 	function addActivity() {
 		activities.update(activities => {
-			if (activity.fundamental) {
-				activity = {
-					...activity,
+			let newActivities = _.cloneDeep(activities)
+			let newActivity = _.cloneDeep(activity)
+			
+			if (newActivity.fundamental) {
+				newActivity = {
+					...newActivity,
 					fundamental: false,
-					components: [],
+					components: [{
+						weight: 1,
+						activityId: newActivities.length,
+					}],
 				}
+			} else {
+				newActivity.components = [
+					...newActivity.components,
+					{
+						weight: 1,
+						activityId: newActivities.length,
+					}
+				];
 			}
-			activity.components = [
-				...activity.components,
-				{
-					weight: 1,
-					activityId: activities.length,
-				}
-			];
+			
 			panelOpen = true;
+			newActivities[newActivity.id] = newActivity
 			return [
-				...activities,
+				...newActivities,
 				{
-					id: activities.length,
-					fundamental: true,
+					id: newActivities.length,
+					fundamental: true as const,
 					name: 'new activity',
 					value: 0,
 					description: '',
