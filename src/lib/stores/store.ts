@@ -35,6 +35,8 @@ function activitiesToActivitiesAndActivityComponentsRows(activities: Activity[])
 // For some reason the `oldValues` argument in the second asyncWritable callback was always exactly the same as new,
 // So we're doing it manually
 const oldActivitiesStore = writable<Activity[]>([]);
+// This is used to debounce writing to the database
+const writing = writable(false);
 
 export const activities = asyncWritable<Stores, Activity[]>(
     [],
@@ -45,28 +47,35 @@ export const activities = asyncWritable<Stores, Activity[]>(
         return json;
     },
     async (newActivities) => {
-        const oldActivities = await oldActivitiesStore.load();
+        if (await writing.load()) return
         
-        const [newActivitiesRows, newActivityComponentsRows] = activitiesToActivitiesAndActivityComponentsRows(newActivities)
-        const [oldActivitiesRows, oldActivityComponentsRows] = activitiesToActivitiesAndActivityComponentsRows(oldActivities ?? [])
-        
-        const updatedActivitiesRows = _.differenceWith(newActivitiesRows, oldActivitiesRows, _.isEqual)
-        const removedActivitiesRows = _.differenceBy(oldActivitiesRows, newActivitiesRows, 'id')
-        const updatedActivityComponentsRows = _.differenceWith(newActivityComponentsRows, oldActivityComponentsRows, _.isEqual)
-        const removedActivityComponentsRows = _.differenceWith(
-            oldActivityComponentsRows,
-            newActivityComponentsRows,
-            ((oldComponent, newComponent) => oldComponent.parent === newComponent.parent && oldComponent.child === newComponent.child)
-        )
-        
-        // TODO: must only be new activities, all of these will be inserted into the database rn
-        const postBody = JSON.stringify({ updatedActivitiesRows, updatedActivityComponentsRows, removedActivitiesRows, removedActivityComponentsRows });
-        const response = await fetch('/api/activities', {
-            method: 'POST',
-            body: postBody,
-        });
-        // return response.json();
-        oldActivitiesStore.set(_.cloneDeep(newActivities));
+        writing.set(true);
+        setTimeout(async () => {
+            const oldActivities = await oldActivitiesStore.load();
+            
+            const [newActivitiesRows, newActivityComponentsRows] = activitiesToActivitiesAndActivityComponentsRows(newActivities)
+            const [oldActivitiesRows, oldActivityComponentsRows] = activitiesToActivitiesAndActivityComponentsRows(oldActivities ?? [])
+            
+            const updatedActivitiesRows = _.differenceWith(newActivitiesRows, oldActivitiesRows, _.isEqual)
+            const removedActivitiesRows = _.differenceBy(oldActivitiesRows, newActivitiesRows, 'id')
+            const updatedActivityComponentsRows = _.differenceWith(newActivityComponentsRows, oldActivityComponentsRows, _.isEqual)
+            const removedActivityComponentsRows = _.differenceWith(
+                oldActivityComponentsRows,
+                newActivityComponentsRows,
+                ((oldComponent, newComponent) => oldComponent.parent === newComponent.parent && oldComponent.child === newComponent.child)
+            )
+            
+            // TODO: must only be new activities, all of these will be inserted into the database rn
+            const postBody = JSON.stringify({ updatedActivitiesRows, updatedActivityComponentsRows, removedActivitiesRows, removedActivityComponentsRows });
+            const response = await fetch('/api/activities', {
+                method: 'POST',
+                body: postBody,
+            });
+            // return response.json();
+            oldActivitiesStore.set(_.cloneDeep(newActivities));
+            
+            writing.set(false);
+        }, 1000);
     }
 );
 
