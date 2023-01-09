@@ -5,8 +5,9 @@
 	import LayoutGrid, { Cell, InnerGrid } from '@smui/layout-grid';
 	import Slider from '@smui/slider';
 	import TextField from '@smui/textfield';
-	import { activities, type Activity } from "$lib/stores/store";
+	import { activities } from "$lib/stores/store";
 	import _ from 'lodash';
+	import type {Activity} from './activities';
 
 	export let activity: Activity;
 	let sliderNum = 0;

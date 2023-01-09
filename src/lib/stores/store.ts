@@ -1,37 +1,7 @@
 import { asyncWritable, writable, type Stores } from "@square/svelte-store";
 import _ from 'lodash';
-import {activityToActivityComponentsRow, type ActivitiesRow, type ActivityComponentsRow} from "$lib/activities/activities";
 import type {Endpoints} from "$lib/api/types";
-
-export type AbstractActivity = {
-    id: number;
-    name: string;
-    value: number;
-    description: string;
-};
-
-export type GenericActivity = AbstractActivity & {
-    fundamental: false;
-    components: Array<{
-        weight: number;
-        activityId: number;
-    }>;
-}
-
-export type FundamentalActivity = AbstractActivity & {
-    fundamental: true;
-    components: undefined;
-};
-
-export type Activity = GenericActivity | FundamentalActivity;
-
-function activitiesToActivitiesAndActivityComponentsRows(activities: Activity[]): [ActivitiesRow[], ActivityComponentsRow[]] {
-    const [activitiesRows, activityComponentsRows] = _.chain(activities)
-        .map(activity => [_.omit(activity, 'components'), activityToActivityComponentsRow(activity)])
-        .unzip()
-        .value() as [ActivitiesRow[], ActivityComponentsRow[]] // shouldn't need to do this
-    return [activitiesRows, _.flatten(activityComponentsRows)]
-}
+import {activitiesToActivitiesAndActivityComponentsRows, type Activity} from "$lib/activities/activities";
 
 // For some reason the `oldValues` argument in the second asyncWritable callback was always exactly the same as new,
 // So we're doing it manually

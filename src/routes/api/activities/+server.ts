@@ -1,6 +1,5 @@
-import type {Activity} from '$lib/stores/store';
 import type { RequestHandler } from '@sveltejs/kit';
-import type {ActivitiesRow, ActivityComponentsRow} from '$lib/activities/activities';
+import type {ActivitiesRow, Activity, ActivityComponentsRow} from '$lib/activities/activities';
 import type {Endpoints} from '$lib/api/types';
 
 export const GET = (async ({ locals }) => {

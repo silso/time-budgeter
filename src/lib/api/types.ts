@@ -1,7 +1,6 @@
 // TODO: replace with trpc https://github.com/icflorescu/trpc-sveltekit
 
-import type {ActivitiesRow, ActivityComponentsRow} from "$lib/activities/activities"
-import type {Activity} from "$lib/stores/store"
+import type {ActivitiesRow, Activity, ActivityComponentsRow} from "$lib/activities/activities"
 
 export enum Message {
 	Request = 'request',
