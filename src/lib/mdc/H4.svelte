@@ -1,9 +1,9 @@
-<div><slot></slot></div>
+<div><slot /></div>
 
 <style lang="scss">
-    @use "@material/typography";
+  @use '@material/typography';
 
-    div {
-        @include typography.typography('headline4');
-    }
+  div {
+    @include typography.typography('headline4');
+  }
 </style>
