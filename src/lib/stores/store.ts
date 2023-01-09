@@ -1,6 +1,7 @@
 import { asyncWritable, writable, type Stores } from "@square/svelte-store";
 import _ from 'lodash';
 import {activityToActivityComponentsRow, type ActivitiesRow, type ActivityComponentsRow} from "$lib/activities/activities";
+import type {Endpoints} from "$lib/api/types";
 
 export type AbstractActivity = {
     id: number;
@@ -42,7 +43,7 @@ export const activities = asyncWritable<Stores, Activity[]>(
     [],
     async () => {
         const res = await fetch('/api/activities');
-        const json = await res.json();
+        const json = await res.json() as Endpoints['/activities']['get'];
         oldActivitiesStore.set(_.cloneDeep(json));
         return json;
     },
@@ -54,7 +55,7 @@ export const activities = asyncWritable<Stores, Activity[]>(
             const oldActivities = await oldActivitiesStore.load();
             
             const [newActivitiesRows, newActivityComponentsRows] = activitiesToActivitiesAndActivityComponentsRows(newActivities)
-            const [oldActivitiesRows, oldActivityComponentsRows] = activitiesToActivitiesAndActivityComponentsRows(oldActivities ?? [])
+            const [oldActivitiesRows, oldActivityComponentsRows] = activitiesToActivitiesAndActivityComponentsRows(oldActivities)
             
             const updatedActivitiesRows = _.differenceWith(newActivitiesRows, oldActivitiesRows, _.isEqual)
             const removedActivitiesRows = _.differenceBy(oldActivitiesRows, newActivitiesRows, 'id')
@@ -66,12 +67,18 @@ export const activities = asyncWritable<Stores, Activity[]>(
             )
             
             // TODO: must only be new activities, all of these will be inserted into the database rn
-            const postBody = JSON.stringify({ updatedActivitiesRows, updatedActivityComponentsRows, removedActivitiesRows, removedActivityComponentsRows });
+            const postBody: Endpoints['/activities']['post']['request'] = {
+                updatedActivitiesRows,
+                updatedActivityComponentsRows,
+                removedActivitiesRows,
+                removedActivityComponentsRows
+            };
             const response = await fetch('/api/activities', {
                 method: 'POST',
-                body: postBody,
+                body: JSON.stringify(postBody),
             });
-            // return response.json();
+            // const result = await response.json();
+            // TODO: check success/failure (could be solved with trpc-sveltekit)
             oldActivitiesStore.set(_.cloneDeep(newActivities));
             
             writing.set(false);

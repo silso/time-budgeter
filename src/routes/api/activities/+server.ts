@@ -1,6 +1,7 @@
 import type {Activity} from '$lib/stores/store';
 import type { RequestHandler } from '@sveltejs/kit';
 import type {ActivitiesRow, ActivityComponentsRow} from '$lib/activities/activities';
+import type {Endpoints} from '$lib/api/types';
 
 export const GET = (async ({ locals }) => {
 	const { sql } = locals;
@@ -8,13 +9,14 @@ export const GET = (async ({ locals }) => {
 	const activitiesRows = await sql<ActivitiesRow[]>`SELECT * FROM "Activities"`;
 	const activityComponentsRows = await sql<ActivityComponentsRow[]>`SELECT * FROM "Activity Components"`;
 	
+	// Map from an activity ID to it's components
 	const activityComponents = new Map<number, {weight: number, activityId: number}[]>();
 	
 	activityComponentsRows.forEach(component => {
-		const existingComponents = activityComponents.get(component.parent)
+		const existingComponents = activityComponents.get(component.parent) // components that have been found so far for this parent activity
 		activityComponents.set(
 			component.parent,
-			[...existingComponents ?? [], {weight: component.weight, activityId: component.child}]
+			[...existingComponents ?? [], {weight: component.weight, activityId: component.child}] // add this component to those found so far
 		)
 	});
 	
@@ -26,7 +28,7 @@ export const GET = (async ({ locals }) => {
 				components: undefined
 			}
 		} else {
-			const components = activityComponents.get(activity.id);
+			const components = activityComponents.get(activity.id); // if this activity is not fundamental, it must have components
 			if (components === undefined) throw new TypeError;
 			return {
 				...activity,
@@ -39,19 +41,13 @@ export const GET = (async ({ locals }) => {
 }) satisfies RequestHandler;
 
 export const POST = (async ({ request, locals }) => {
-	const req = await request.json();
+	const { sql } = locals;
 	const {
 		updatedActivitiesRows,
 		updatedActivityComponentsRows,
 		removedActivitiesRows,
 		removedActivityComponentsRows
-	}: {
-		updatedActivitiesRows: ActivitiesRow[],
-		updatedActivityComponentsRows: ActivityComponentsRow[],
-		removedActivitiesRows: ActivitiesRow[],
-		removedActivityComponentsRows: ActivityComponentsRow[]
-	} = req;
-	const { sql } = locals;
+	}: Endpoints['/activities']['post']['request'] = await request.json();
 	
 	const result = await sql.begin(sql => [
 		...(updatedActivitiesRows.length === 0) ? [] : [sql`
