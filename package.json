@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@lucia-auth/adapter-kysely": "~0.3.0",
+    "@lucia-auth/oauth": "^0.4.0",
     "@lucia-auth/sveltekit": "~0.5.2",
     "@playwright/test": "^1.28.1",
     "@smui-extra/accordion": "^7.0.0-beta.0",

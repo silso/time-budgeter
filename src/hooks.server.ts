@@ -27,4 +27,4 @@ const dbHandle = (async ({ event, resolve }) => {
   return response
 }) satisfies Handle
 
-export const handle = sequence(handleHooks(auth) as never satisfies Handle, dbHandle);
+export const handle = sequence(handleHooks(auth) as never satisfies Handle, dbHandle)
