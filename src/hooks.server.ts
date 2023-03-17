@@ -1,22 +1,11 @@
-import postgres from 'postgres'
 import type { Handle } from '@sveltejs/kit'
-import { DATABASE_CONNECTION_STRING } from '$env/static/private'
+import { db, migrator } from '$lib/server/model/database/kysely/v1/database'
 
 export const handle = (async ({ event, resolve }) => {
-  const sql = postgres(DATABASE_CONNECTION_STRING, {
-    types: {
-      // By default, postgres.js converts numeric to string. This uses Number
-      numeric: {
-        to: 0,
-        from: [1700],
-        serialize: (x: string) => '' + x,
-        parse: (x: number) => +x,
-      },
-    },
-  })
+  migrator.migrateToLatest()
 
   event.locals = {
-    sql: sql,
+    db: db,
   }
 
   const response = await resolve(event)
